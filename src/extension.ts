@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		console.log(`[css-autotokens] Found reference file: ${cssFileRef}`);
 		const file = fs.readFileSync(cssFileRef, 'utf8');
-		const regex = new RegExp(`${STYLE_SETTINGS.tokenPrefix}.+}`, 'gm');
+		const regex = new RegExp(`${STYLE_SETTINGS.tokenPrefix}.+`, 'gm');
 		const rawTokens = file.match(regex);
 		tokens = Object.fromEntries(
 			rawTokens?.map((x) => {
@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}) || []
 		);
 
-		console.log(`[css-autotokens] Ready. (${rawTokens?.length} tokens loaded)`);
+		console.log(`[css-autotokens] Ready. (${rawTokens?.length} tokens loaded)`, Object.entries(tokens)[0]);
 		state = 'ready';
 	};
 
@@ -67,6 +67,31 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	};
 
+	const provideHoverDetails = vscode.languages.registerHoverProvider({
+		pattern: '**/*.{css,scss,less}',
+	}, {
+		provideHover(document, position, token) {
+			if (state === 'loading' || !vscode.workspace) { 
+				return undefined;
+			}
+			else if (state === 'idle') { 
+				loadTokens();
+				return undefined;
+			}
+
+			const line = document.lineAt(position).text;
+			const tokensPresent = Object.keys(tokens).filter((token) => line.includes(token));
+
+			if (!tokensPresent.length) {
+				return undefined;
+			}
+			
+			return new vscode.Hover(`**${STYLE_SETTINGS.packageName}**\n${
+				tokensPresent.map((token) => `- \`${token}: ${tokens[token]}\``).join('\n')
+			}`);
+		},
+	});
+
 	const provideTokenAutocompletion = vscode.languages.registerCompletionItemProvider(
 		{
 			pattern: '**/*.{css,scss,less}',
@@ -82,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 
 				const linePrefix = document.lineAt(position).text.slice(0, position.character);
-				const regex = new RegExp(`${STYLE_SETTINGS.tokenPrefix}.*}`, 'gm');
+				const regex = new RegExp(`${STYLE_SETTINGS.tokenPrefix.replace('--', '')}.*`, 'gm');
 				const isPrefixed = linePrefix.match(regex)?.toString();
 
 				if (!isPrefixed) {
@@ -117,7 +142,7 @@ export function activate(context: vscode.ExtensionContext) {
 		'-'
 	);
 
-	context.subscriptions.push(provideTokenAutocompletion);
+	context.subscriptions.push(provideTokenAutocompletion, provideHoverDetails);
 }
 
 // This method is called when your extension is deactivated
