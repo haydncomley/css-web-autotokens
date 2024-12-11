@@ -119,6 +119,7 @@ export function activate(context: vscode.ExtensionContext) {
 					.filter(([token]) => token.startsWith(isPrefixed))
 					.map(([token, value]) => {
 						const item = new vscode.CompletionItem(token, vscode.CompletionItemKind.Variable);
+						item.range = new vscode.Range(new vscode.Position(position.line, position.character - isPrefixed.length), position);
 
 						if (value.startsWith('hsl')) {
 							const valueCleaned = value.trim().replace('hsl(', '').replace(');', '');
@@ -130,7 +131,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 							item.kind = vscode.CompletionItemKind.Color;
 							item.detail = hslToHex(hslSplit[0], hslSplit[1], hslSplit[2]);
-							item.range = new vscode.Range(new vscode.Position(position.line, position.character - isPrefixed.length), position);
 						} else {
 							item.detail = value.replace(';', '').trim();
 						}
