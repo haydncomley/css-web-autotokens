@@ -55,7 +55,8 @@ export function activate(context: vscode.ExtensionContext) {
 			while (currentDir !== '/') {
 				const files = fs.readdirSync(currentDir);
 				if (files.includes('package.json')) {
-					const containsPackage = fs.readFileSync(path.join(currentDir, 'package.json'), 'utf8').includes(STYLE_SETTINGS.packageName);
+					const packageJson = path.join(currentDir, 'package.json');
+					const containsPackage = fs.existsSync(packageJson) && fs.readFileSync(packageJson, 'utf8').includes(STYLE_SETTINGS.packageName);
 					if (containsPackage) { return `${currentDir}/node_modules/${STYLE_SETTINGS.packageName}/${STYLE_SETTINGS.packageCssReference}`; }
 				}
 				currentDir = path.resolve(currentDir, '../');
